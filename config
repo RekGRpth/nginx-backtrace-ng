@@ -34,6 +34,6 @@ if test -n "$ngx_module_link"; then
 else
 HTTP_MODULES="$HTTP_MODULES ngx_backtrace_module"
 NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_backtrace_module.c"
+fi
 CORE_LIBS="$CORE_LIBS -rdynamic -fno-omit-frame-pointer -lunwind -lunwind-$lib_arch"
 CFLAGS="$CFLAGS -rdynamic -fno-omit-frame-pointer"
-fi
