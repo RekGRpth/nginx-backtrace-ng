@@ -13,19 +13,9 @@
 #include <memory.h>
 
 #include <libunwind.h> /* from -llibuwind */
+#include <dlfcn.h>
 
-#if defined(REG_RIP)
-# define SIGSEGV_STACK_IA64
-# define REGFORMAT "%016lx"
-#elif defined(REG_EIP)
-# define SIGSEGV_STACK_X86
-# define REGFORMAT "%08x"
-#else
-# define SIGSEGV_STACK_GENERIC
-# define REGFORMAT "%x"
-#endif
-
-#define NGX_BACKTRACE_DEFAULT_STACK_MAX_SIZE 30
+#define NGX_BACKTRACE_DEFAULT_STACK_MAX_SIZE 128
 
 static char *ngx_backtrace_files(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static void ngx_error_signal_handler(int signo, siginfo_t *info, void *secret);
@@ -44,7 +34,7 @@ typedef struct {
 
 typedef struct {
     ngx_log_t  *log;
-    ngx_int_t  max_stack_size;
+//    ngx_int_t  max_stack_size;
 } ngx_backtrace_conf_t;
 
 static ngx_signal_t  ngx_backtrace_signals[] = {
@@ -91,14 +81,14 @@ static ngx_command_t ngx_backtrace_commands[] = {
       0,
       0,
       NULL },
-
+/*
     { ngx_string("backtrace_max_stack_size"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
       0,
       offsetof(ngx_backtrace_conf_t, max_stack_size),
       NULL },
-
+*/
       ngx_null_command
 };
 
@@ -250,11 +240,11 @@ ngx_error_signal_handler (int signo, siginfo_t *info, void *ptr) {
         ngx_log_error(NGX_LOG_ERR, log, ngx_errno,
                       "ngx_backtrace_module: sigaction(%s) failed", sig->signame);
     }
-
+/*
     if (bcf->max_stack_size == NGX_CONF_UNSET) {
         bcf->max_stack_size = NGX_BACKTRACE_DEFAULT_STACK_MAX_SIZE;
     }
-
+*/
     dprintf(fd, "Stack trace:\n");
 
     ret = unw_getcontext(&uc);
@@ -273,6 +263,7 @@ ngx_error_signal_handler (int signo, siginfo_t *info, void *ptr) {
     for (nptrs = 0; unw_step(&cursor) > 0; nptrs++) {
         char fname[128] = { '\0', };
         unw_word_t ip, sp, offp;
+        Dl_info info;
 
         unw_get_proc_name (&cursor, fname, sizeof(fname), &offp);
 
@@ -281,7 +272,7 @@ ngx_error_signal_handler (int signo, siginfo_t *info, void *ptr) {
             dprintf(fd, "Problems with unw_get_reg(UNW_REG_IP) failed: ret=%d\n", ret);
             goto invalid;
         }
-
+/*
         ret = unw_get_reg (&cursor, UNW_REG_SP, &sp);
         if (ret != 0) {
             dprintf(fd, "Problems with unw_get_reg(UNW_REG_SP) failed: ret=%d\n", ret);
@@ -290,9 +281,15 @@ ngx_error_signal_handler (int signo, siginfo_t *info, void *ptr) {
 
         if (!strcmp(fname, "__restore_rt")) continue;
         if (!strcmp(fname, "__libc_start_main")) break;
+*/
+        ret = dladdr((void *)ip, &info);
+        if (ret == 0)
+        if (ret != 0) {
+            dprintf(fd, "Problems with dladdr failed: ret=%d\n", ret);
+            goto invalid;
+        }
 
-        dprintf(fd, "\t#%02d: 0x"REGFORMAT" in %s(), sp = 0x"REGFORMAT"\n",
-                nptrs, (long) ip, fname[0] ? fname : "??", (long) sp);
+        dprintf(fd, "#%02d: 0x%lx <%s+%li> at %s\n", nptrs, (long)ip, fname[0] ? fname : "???", (long)offp, info.dli_fname);
     }
 
     dprintf(fd, "End of stack trace.\n\n");
@@ -366,7 +363,7 @@ ngx_backtrace_create_conf(ngx_cycle_t *cycle)
         return NULL;
     }
 
-    bcf->max_stack_size = NGX_CONF_UNSET;
+//    bcf->max_stack_size = NGX_CONF_UNSET;
 
     return bcf;
 }
