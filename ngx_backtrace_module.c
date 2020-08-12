@@ -289,6 +289,17 @@ ngx_error_signal_handler (int signo, siginfo_t *info, void *ptr) {
             goto invalid;
         }
 
+        dprintf(fd, "%*.*s", ngx_cached_err_log_time.len, ngx_cached_err_log_time.len, ngx_cached_err_log_time.data);
+#if (NGX_DEBUG)
+        struct timeval tv;
+        ngx_gettimeofday(&tv);
+        dprintf(fd, ".%06u", tv.tv_usec);
+#else
+        ngx_time_t *tp = ngx_timeofday();
+        dprintf(fd, ".%03u", tp->msec);
+#endif
+        dprintf(fd, " [error] %u#%u: ", ngx_log_pid, ngx_log_tid);
+
         dprintf(fd, "#%02d: 0x%lx <%s+%li> at %s\n", nptrs, (long)ip, fname[0] ? fname : "???", (long)offp, info.dli_fname);
     }
 
