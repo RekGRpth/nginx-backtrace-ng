@@ -262,7 +262,7 @@ ngx_error_signal_handler (int signo, siginfo_t *info, void *ptr) {
 
     for (nptrs = 0; unw_step(&cursor) > 0; nptrs++) {
         char fname[128] = { '\0', };
-        unw_word_t ip, sp, offp;
+        unw_word_t ip, offp;
         Dl_info info;
 
         unw_get_proc_name (&cursor, fname, sizeof(fname), &offp);
