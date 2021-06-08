@@ -61,7 +61,7 @@ static sig_action_map_t ngx_backtrace_si_codes[] = {
     { SIGSEGV, -1,          "Unknown reason" }
 };
 
-const char *ngx_si_code2desc(int signo, int si_code) {
+static const char *ngx_si_code2desc(int signo, int si_code) {
     sig_action_map_t *p;
 
     for (p = &ngx_backtrace_si_codes[0]; p->signo != -1; p++) {
@@ -133,7 +133,7 @@ ngx_log_create (ngx_cycle_t *cycle, ngx_str_t *name)
 }
 #endif
 
-const char *ngx_backtrace_get_proc_exe (pid_t pid) {
+static const char *ngx_backtrace_get_proc_exe (pid_t pid) {
     char proc_pid[64];
     static char proc_buf[64];
     
